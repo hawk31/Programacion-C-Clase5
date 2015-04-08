@@ -20,6 +20,10 @@ int id;
 static int ide_snprintf(GtkButton *widget, gpointer data)
 {
 	char buffer[8000];
+	int binding;
+	int allowreuse = 1;
+	int reuse;
+
 
 	struct sockaddr_in dest;
 	struct sockaddr_in serv;
@@ -40,7 +44,20 @@ static int ide_snprintf(GtkButton *widget, gpointer data)
 		return -1;
 	}
 
-	bind(server, (struct sockaddr *)&serv, sizeof(struct sockaddr));
+	reuse = setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &allowreuse, sizeof allowreuse);
+	if(reuse < 0){
+		perror("Reuse \n");
+		return -1;
+	}
+
+
+	binding = bind(server, (struct sockaddr *)&serv, sizeof(struct sockaddr));
+
+	if(binding < 0){
+		perror("Error binding \n");
+		return -1;
+	}
+
 	listen(server, 1);
 
 	int client = accept(server, (struct sockaddr *)&dest, &socksize);
@@ -53,11 +70,10 @@ static int ide_snprintf(GtkButton *widget, gpointer data)
 		printf("IP %s \n", inet_ntoa(dest.sin_addr));
 		send(client, buffer, strlen(buffer), 0);
 		close(client);
-		client = accept(server, (struct sockaddr *)&dest, &socksize);
+		client = 0;
 	}
 
 	close(server);
-	return EXIT_SUCCESS;
 
 
 }
